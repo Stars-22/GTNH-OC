@@ -5,20 +5,20 @@ local transposer = component.transposer  --转运组件--
 local nuclear = component.reactor_chamber  --核电反应堆组件--
 local energy = component.gt_batterybuffer  --能量存储组件--
 --数据--
-local HeatValve = 0.81  --反应堆温度阈值--
+local HeatValve = 0.21  --反应堆温度阈值--
 local FuelName = "四联燃料棒(钍)"  --燃料名字--
 local FuelNameExhausted = "四联燃料棒(枯竭钍)"--枯竭燃料名字--
-local RefrigerantName = "60k钠钾冷却单元" --冷却液名字--
+local RefrigerantName = "360k钠钾冷却单元" --冷却液名字--
 local RefrigerantValve = 0.10  --冷却液耐久阈值--
 local EnergyValveMax = 0.80  --能量存储最大值--
 local EnergyValveMin = 0.20  --能量存储最小值--
 local EnergySize = 16  --能量存储中的格子(装电池)数量(注：此处使用的是GT的电池箱)
-local Putting = { 1,1,2,1,1,2,1,1,2,  --反应堆摆法(1:燃料 2:冷却液)--
+local Putting = { 0,1,2,1,1,2,1,1,2,  --反应堆摆法(1:燃料 2:冷却液 3:空)--
                   2,1,1,1,1,2,1,1,1,
 				  1,1,1,2,1,1,1,2,1,
 				  1,2,1,1,1,2,1,1,1,
 				  1,1,1,2,1,1,1,1,2,
-				  2,1,1,2,1,1,2,1,1 }
+				  2,1,1,2,1,1,2,1,0 }
 --方向--
 --[[注:
 共占用了转运器的6个面(储电，OC线缆，反应堆，燃料存储，枯竭燃料存储，冷却液存储，高温冷却液存储)。
@@ -28,11 +28,12 @@ local Putting = { 1,1,2,1,1,2,1,1,2,  --反应堆摆法(1:燃料 2:冷却液)--
 使燃料存储与枯竭燃料存储同时占用一个面，
 可以使用中等空间数量的箱子，
 或者使用抽屉管理器。]]--
-local NuclearDirection = sides.south  --反应堆在转运器的方向(绝对方向)--
-local FuelDirection = sides.north  --燃料存储在转运器的方向(绝对方向)--
-local FuelDirectionExhausted = sides.north  --枯竭燃料存储在转运器的方向(绝对方向)--
+--东:east,南:south,西:west,北:north--
+local NuclearDirection = sides.north  --反应堆在转运器的方向(绝对方向)--
+local FuelDirection = sides.up  --燃料存储在转运器的方向(绝对方向)--
+local FuelDirectionExhausted = sides.up  --枯竭燃料存储在转运器的方向(绝对方向)--
 local RefrigerantDirection = sides.down  --冷却液存储在转运器的方向(绝对方向)--
-local RefrigerantDirectionExhausted = sides.up  --高温冷却液存储在转运器的方向(绝对方向)--
+local RefrigerantDirectionExhausted = sides.south  --高温冷却液存储在转运器的方向(绝对方向)--
 local ManualDirection = sides.front  --手动控制红石信号在红石接口的方向(相对方向)--
 local SwitchDirection = sides.back  --反应堆在红石接口的方向(相对方向)--
 
@@ -89,7 +90,7 @@ function main()  --主函数--
 		if sum/summax > EnergyValveMax then  --当前储能大于最大阈值--
 		    redstone.setOutput(SwitchDirection,0)  --关闭反应堆--
 		    while sum/summax >= EnergyValveMin do  --循环:等待掉电(等待储能小于最小阈值)--
-			    print("等待储存电量消耗...")
+			    print("等待储存电量消耗...".."当前储电量:"..string.format("%.2f",sum/summax*100).."%")
 		        os.sleep(1)  --暂停1秒--
 				summax = energy.getEUMaxStored()  --最大储能--
 		        sum = energy.getEUStored()  --当前储能--
@@ -105,11 +106,17 @@ function main()  --主函数--
 	    --检测反应堆温度是否过高--
 	    if nuclear.getHeat()/nuclear.getMaxHeat() > HeatValve then
 	        redstone.setOutput(SwitchDirection,0)  --关闭反应堆--
-			k = false
+			while true do
+			    print("反应堆温度过高！！！当前堆温:"..string.format("%.2f",nuclear.getHeat()/nuclear.getMaxHeat()*100).."%")
+				os.sleep(0.02)
+			    if nuclear.getHeat()/nuclear.getMaxHeat() <= HeatValve then
+				    break
+				end
+			end
 	    end
 	    --检测反应堆内部物品--
 	    for i=1,54 do  --遍历反应堆内部--
-	        if Putting[i] == 1 then --此处应放燃料--
+	        if Putting[i] == 1 then  --此处应放燃料--
 			    NuclearItem = transposer.getStackInSlot(NuclearDirection,i)
 			    if NuclearItem == nil then  --此处为空--
 				    redstone.setOutput(SwitchDirection,0)  --关闭反应堆--
@@ -124,7 +131,7 @@ function main()  --主函数--
 				    for t=1,transposer.getInventorySize(FuelDirectionExhausted) do  --遍历枯竭燃料存储--
 						FuelItem = transposer.getStackInSlot(FuelDirectionExhausted,t)
 				    	if  FuelItem == nil then --枯竭燃料存储此处为空--
-				    	    ransposer.transferItem(NuclearDirection,FuelDirectionExhausted,1,i,t)  --将枯竭燃料移出反应堆--
+				    	    transposer.transferItem(NuclearDirection,FuelDirectionExhausted,1,i,t)  --将枯竭燃料移出反应堆--
 				    		if tp(FuelName,i) then
 								print("成功替换燃料x1")
 							else
@@ -140,6 +147,7 @@ function main()  --主函数--
 							    k = false 
 								print("缺少燃料")
 							end
+				    		break
 						elseif t == transposer.getInventorySize(FuelDirectionExhausted) then  --枯竭燃料存储已满--
 				    	    print ("枯竭燃料已存满")
 				    		k = false 
@@ -152,7 +160,7 @@ function main()  --主函数--
 		    	    k = false
 				end
 		    end
-	        if Putting[i] == 2 then --此处应放冷却液--
+	        if Putting[i] == 2 then  --此处应放冷却液--
 			    NuclearItem = transposer.getStackInSlot(NuclearDirection,i)
 			    if NuclearItem == nil then  --此处为空--
 				    redstone.setOutput(SwitchDirection,0)  --关闭反应堆--
@@ -187,11 +195,14 @@ function main()  --主函数--
 		    	    k = false
 				end
 		    end
+			if Putting[i] == 0 then  --此处应为空--
+			    
+			end
 			os.sleep(0.02)
 		end
         if k then
 			redstone.setOutput(SwitchDirection,1)
-		    print("运行中...输出功率:"..nuclear.getReactorEUOutput().."EU/t")
+		    print("运行中...输出功率:"..string.format("%.2f",nuclear.getReactorEUOutput()).."EU/t".."  当前储电量:"..string.format("%.2f",sum/summax*100).."%")
 		end
 		os.sleep(0.02)
 	end
