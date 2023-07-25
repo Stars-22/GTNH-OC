@@ -1,7 +1,7 @@
 local component = require("component")
 local sides = require("sides")
-local redstone = component.redstone  --红石组件--
-local transposer = component.transposer  --转运组件--
+local redstone = component.redstone  --红石组件("红石I/O端口"/"基础红石卡")--
+local transposer = component.transposer  --转运组件("转运器")--
 local nuclear = component.reactor_chamber  --核电反应堆组件--
 local energy = component.gt_batterybuffer  --能量存储组件--
 --数据--
@@ -19,23 +19,28 @@ local Putting = { 0,1,2,1,1,2,1,1,2,  --反应堆摆法(1:燃料 2:冷却液 3:�
 				  1,2,1,1,1,2,1,1,1,
 				  1,1,1,2,1,1,1,1,2,
 				  2,1,1,2,1,1,2,1,0 }
---方向--
---[[注:
-共占用了转运器的6个面(储电，OC线缆，反应堆，燃料存储，枯竭燃料存储，冷却液存储，高温冷却液存储)。
-解决方案:
-两个存储同时占用一个面，存储！！！
-推荐:
-使燃料存储与枯竭燃料存储同时占用一个面，
-可以使用中等空间数量的箱子，
-或者使用抽屉管理器。]]--
---东:east,南:south,西:west,北:north--
+--[[方向
+注:多个存储可用转运器同一个面(推荐:燃料+枯竭燃料)(也可以使用抽屉管理器)
+--绝对方向--
+东:sides.east
+南:sides.south
+西:sides.west
+北:sides.north
+--相对方向--
+前:sides.front
+后:sides.back
+左:sides.left
+右:sides.right
+上:sides.up
+下:sides.down
+]]--
 local NuclearDirection = sides.north  --反应堆在转运器的方向(绝对方向)--
 local FuelDirection = sides.up  --燃料存储在转运器的方向(绝对方向)--
 local FuelDirectionExhausted = sides.up  --枯竭燃料存储在转运器的方向(绝对方向)--
 local RefrigerantDirection = sides.down  --冷却液存储在转运器的方向(绝对方向)--
 local RefrigerantDirectionExhausted = sides.south  --高温冷却液存储在转运器的方向(绝对方向)--
-local ManualDirection = sides.front  --手动控制红石信号在红石接口的方向(相对方向)--
-local SwitchDirection = sides.back  --反应堆在红石接口的方向(相对方向)--
+local ManualDirection = sides.front  --手动控制红石信号在红石接口的方向(从机箱发出红石信号为相对方向,其他为绝对方向)--
+local SwitchDirection = sides.back  --反应堆在红石接口的方向(从机箱发出红石信号为相对方向,其他为绝对方向)--
 
 function tp(name,location)  --函数:添加物品--
     if name == FuelName then  --转运燃料--
