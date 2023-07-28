@@ -11,12 +11,19 @@ df ->--显示所有当前文件系统和挂载点
 ls ->--显示当前目录的文件列表
 label -a ->--更改文件驱动器名称
 mount HDD C: ->--将名为HDD的文件驱动器挂载为当前目录中名为C:的文件夹
+mount ->--查看挂在列表
+pwd ->--输出当前目录位置
+man mount ->--显示mount命令的用法
+
 
 
 ————————————————Lua————————————————
 local a = 1 ->--定义局部变量
 b = 2 ->--定义全局变量
 nil ->--空
+
+type() ->--查看变量类型
+
 
 if ["条件"] then
     ......
@@ -72,4 +79,36 @@ https://www.bilibili.com/video/BV1Xq4y1S7ZX/?share_source=copy_web&vd_source=c70
 for _,v in pairs (component.list()) do print(v) end ->--获取组件列表1
 for k,v in pairs (component.list()) do print(k.."  "..v) os.sleep(2) end ->--获取组件列表2
 for k,v in pairs (component.[]) do print(k,v) end ->--获取组件api
-for k,v in pairs (component.gt_machine) do if string.find(k,"get") then print(k,v) os.sleep(2) end end ->--搜索组件api
+for k,v in pairs (component.gt_machine) do if string.find(k,"InNetwork") then print(k,v) os.sleep(2) end end ->--搜索组件api
+
+
+
+
+
+
+
+
+
+
+->--模块与多文件
+---- 文件: sth.lua
+-- 创建新模块（一般约定俗成此模块为一个名字为M的局部表）
+local M = {}
+M.func = function (num)
+    return num*114514
+end
+M.name = "Hello"
+return M -- 最后把它返回出去
+ 
+---- 文件: test.lua
+-- 普通 Lua 代码文件
+print("In test file!")
+ 
+---- 文件: main.lua
+require("test")
+local newmodule = require("sth")
+print(newmodule.name,newmodule.func(1))
+ 
+---- 最后运行 main.lua 结果:
+In test file!
+Hello   114514
